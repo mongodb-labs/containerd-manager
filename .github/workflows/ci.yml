@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update stable
+          rustup default stable
+          rustup component add clippy rustfmt
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --no-deps -- -D warnings
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run unit tests
+        run: cargo test --lib --verbose
+
+      - name: Build examples
+        run: cargo build --examples --verbose
+
+  test-matrix:
+    # Ubuntu stable is covered by `check`; this job adds platform breadth.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update stable
+          rustup default stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run unit tests
+        run: cargo test --lib --verbose
+
+  msrv:
+    # Matches `rust-version` in Cargo.toml. `cargo check` is enough; tests
+    # may pull in features unavailable on the MSRV toolchain.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.88
+        run: |
+          rustup update 1.88
+          rustup default 1.88
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-msrv-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-msrv-
+
+      - name: Check MSRV build
+        run: cargo check --verbose
+
+  e2e-linux:
+    # Runs the e2e suite against native Linux containerd. macOS-specific
+    # tests (bridge networking over colima's VZ network) won't be exercised
+    # but the lifecycle, exec, logs, port-forward, and readiness paths are.
+    runs-on: ubuntu-latest
+    env:
+      CONTAINERD_SOCKET: /run/containerd/containerd.sock
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update stable
+          rustup default stable
+
+      - name: Install containerd + OCI hook deps
+        run: |
+          sudo apt-get update
+          # containerd brings runc. socat, python3, iptables, iproute2,
+          # util-linux back the bridge OCI hooks.
+          sudo apt-get install -y containerd socat python3 iptables iproute2 util-linux
+
+      - name: Start containerd
+        run: |
+          sudo systemctl start containerd
+          sudo systemctl status containerd --no-pager
+          # Default socket is root-owned; relax for the runner user.
+          sudo chmod 666 /run/containerd/containerd.sock
+          ls -la /run/containerd/containerd.sock
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-e2e-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-e2e-
+
+      - name: Run e2e tests
+        env:
+          RUST_BACKTRACE: 1
+        # Test process only needs socket access. Containerd runs as root via
+        # systemd, so the OCI hooks (which need CAP_NET_ADMIN for veth +
+        # iptables) inherit privileges from the daemon.
+        run: cargo test --features e2e-tests --no-fail-fast

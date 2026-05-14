@@ -1,0 +1,4 @@
+/target
+/tasks
+/.claude
+*.code-workspace
