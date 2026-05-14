@@ -1,0 +1,9 @@
+/target
+/tasks
+/.claude
+*.code-workspace
+
+# Personal planning docs / demo materials excluded from public release.
+/REFACTOR_PLAN.md
+/TODO.md
+/demo/

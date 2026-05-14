@@ -1,0 +1,53 @@
+[package]
+name = "containerd-manager"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+description = "Rust async library for managing containers via containerd's gRPC API. A Docker-free Bollard alternative."
+license = "Apache-2.0"
+repository = "https://github.com/mongodb-labs/containerd-manager"
+homepage = "https://github.com/mongodb-labs/containerd-manager"
+readme = "README.md"
+keywords = ["containerd", "container", "colima", "atlas-local", "docker"]
+categories = ["api-bindings", "virtualization", "asynchronous"]
+exclude = [
+    "REFACTOR_PLAN.md",
+    "TODO.md",
+    "TESTING.md",
+    "tests/",
+    "examples/atlas_local_bollard.rs",
+]
+
+[dependencies]
+bytes = "1.10.0"
+containerd-client = "0.9.0"
+dashmap = "6.1.0"
+futures-core = "0.3.31"
+hex = "0.4.3"
+home = "0.5.11"
+hyper-util = { version = "0.1.20", features = ["tokio"] }
+memchr = "2.8.0"
+oci-spec = "0.9.0"
+prost-types = "0.14.3"
+rand = "0.10.1"
+serde_json = "1.0.140"
+sha2 = "0.11.0"
+thiserror = "2.0.18"
+tokio = { version = "1.50.0", features = ["fs", "net", "io-util", "sync", "rt", "macros", "time"] }
+tower = "0.5.2"
+tracing = "0.1.41"
+typed-builder = "0.23.0"
+uuid = { version = "1.23.1", features = ["v4"] }
+
+[features]
+# Integration tests against an already-running colima containerd.
+e2e-tests = []
+# Destructive: starts/stops real colima profiles. See TESTING.md.
+e2e-colima-profiles = []
+
+[dev-dependencies]
+bollard = "0.21.0"
+futures-util = "0.3.32"
+tempfile = "3.27.0"
+tokio = { version = "1.50.0", features = ["rt", "rt-multi-thread", "macros", "time", "signal"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
