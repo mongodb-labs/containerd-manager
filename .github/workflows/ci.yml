@@ -24,7 +24,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
       - name: Cache cargo
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -74,7 +74,7 @@ jobs:
         run: choco install protoc -y
 
       - name: Cache cargo
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -106,7 +106,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
       - name: Cache cargo
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -146,7 +146,7 @@ jobs:
           sudo chmod 666 /run/containerd/containerd.sock
 
       - name: Cache cargo
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
